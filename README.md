@@ -1,2 +1,2 @@
-# invoice-manager
-An online utility to generate invoices.
+# Invoice Manager
+An online utility used to generate invoices.
