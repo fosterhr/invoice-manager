@@ -256,7 +256,7 @@
           $("#newInvoiceClient").empty();
           $("#clientList").empty();
           clientsSnapshot.forEach((doc) => {
-            var html = `<tr class="selectable"><td>${doc.data().name}</td><td>${doc.data().last_invoiced}</td><td>${doc.data().invoices}</td></tr>`;
+            var html = `<tr><td>${doc.data().name}</td><td>${doc.data().last_invoiced}</td><td>${doc.data().invoices}</td></tr>`;
             $("#newInvoiceClient").append(`<option>${doc.data().name}</option>`);
             $("#clientList").prepend(html);
           });
@@ -267,7 +267,7 @@
           $("#newInvoiceService").empty();
           $("#serviceList").empty();
           servicesSnapshop.forEach((doc) => {
-            var html = `<tr class="selectable"><td>${doc.data().name}</td><td>${doc.data().description}</td><td>$${doc.data().cost}</td></tr>`;
+            var html = `<tr><td>${doc.data().name}</td><td>${doc.data().description}</td><td>$${doc.data().cost}</td></tr>`;
             $("#newInvoiceService").append(`<option>${doc.data().name}</option>`);
             $("#serviceList").prepend(html);
           });
