@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+    <title>Invoice Manager</title>
+
+    <style>
+      body, html {
+          background: #fafafa;
+      }
+      img {
+        user-select: none;
+        pointer-events: none;
+      }
+      body {
+        height: 100vh;
+      }
+      .center {
+          position: absolute;
+          top: 50%; right: 50%;
+          transform: translate(50%, -50%);
+      }
+      .card {
+          border-radius: 2.5px;
+      }
+      .shadow-none:focus {
+          box-shadow: none;
+      }
+      .sidebar {
+        width: 70px;
+        background: #ffffff;
+        border-right: 1px solid #e0e0e0;
+        font-size: 18px;
+        position: relative;
+      }
+      .sidebar a {
+        text-decoration: none;
+        color: #757575;
+        text-align: center;
+      }
+      .sidebar .active {
+        background: #f0f0f0 !important;
+        color: #444444 !important;
+      }
+      .table td, .table th {
+        border-top: 0;
+      }
+      .table thead th {
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .selectable:hover {
+        cursor: pointer;
+        background: #f0f0f0;
+        user-select: none;
+      }
+      .logo {
+        width: auto;
+        height: 100%;
+        object-fit: cover;
+      }
+      .nav-link {
+        padding-top: 1em;
+        padding-bottom: 1em;
+      }
+      .nav-link:hover {
+        color:#444444;
+      }
+      .bottom {
+        position: absolute;
+        bottom: 0; right: 50%;
+        transform: translate(50%);
+        width: 100%;
+      }
+      .btn-link {
+        text-decoration: none;
+        color: #444444;
+      }
+      .btn-link:hover {
+        text-decoration: none;
+        color: #222222;
+      }
+      .content {
+        height: 100vh;
+      }
+      .rightbar {
+        height: calc(100% - 8vh);
+        position: relative;
+      }
+      #remoteStream {
+        width: auto;
+        height: 90vh;
+        position: absolute;
+        top: 50%; right: 50%;
+        transform: translate(50%, -50%);
+      }
+  </style>
+
+    <script>
+      var auth = null;
+      var logout = null;
+    </script>
+    <script type="module">
+      // import firebase app, analytics, auth, and firestore libraries
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.2.0/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.2.0/firebase-analytics.js";
+      import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.2.0/firebase-auth.js";
+      import { getFirestore, collection, doc, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/9.2.0/firebase-firestore.js";
+
+      // create config dictionary from container
+      const firebaseConfig = {
+        apiKey: "AIzaSyCLaZD7rssmMeGZc1i8z4T8SEbb2nFnBZA",
+        authDomain: "me-fosterreichert.firebaseapp.com",
+        databaseURL: "https://me-fosterreichert.firebaseio.com",
+        projectId: "me-fosterreichert",
+        storageBucket: "me-fosterreichert.appspot.com",
+        messagingSenderId: "1023354670169",
+        appId: "1:1023354670169:web:2ebdea76e76b8d0ad9b548",
+        measurementId: "G-GRYKM89L70"
+      };
+
+      // init modules
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      var db = getFirestore();
+      var auth = getAuth();
+      var user = null;
+
+      // create a linked function for signing out
+      logout = () => signOut(auth);
+
+      onAuthStateChanged(auth, (u) => {
+        if (u) {
+          user = u;
+          
+          $(document).ready(async function() {
+            // register click listener for creating a new invoice
+            $("#createInvoice").click(async function() {
+              $(this).attr("disabled", true);
+              $(".cancel").attr("disabled", true);
+
+              var client = $("#newInvoiceClient").val();
+              var service = $("#newInvoiceService").val();
+              var notes = $("#newInvoiceNotes").val();
+              
+              if (client != "" || service != "" || notes != "") {
+                await setDoc(doc(db, "users", user.uid, "invoices", generateId()), {
+                  "client": client,
+                  "date_created": moment().format("MMMM D, YYYY - H:mm A"),
+                  "service": service,
+                  "notes": notes,
+                  "viewed": "No",
+                  "paid": "No"
+                });
+
+                resetModals();
+                reloadTables();
+              }
+
+              $(this).attr("disabled", false);
+              $(".cancel").attr("disabled", false);
+            });
+
+            // register click listener for creating a new customer
+            $("#createCustomer").click(async function() {
+              $(this).attr("disabled", true);
+              $(".cancel").attr("disabled", true);
+              
+              var name = $("#newClientName").val();
+              
+              if (name != "") {
+                await setDoc(doc(db, "users", user.uid, "clients", generateId()), {
+                  "name": name,
+                  "date_created": moment().format("MMMM D, YYYY - H:mm A"),
+                  "last_invoiced": "Never",
+                  "invoices": 0
+                });
+
+                resetModals();
+                reloadTables();
+              }
+
+              $(this).attr("disabled", false);
+              $(".cancel").attr("disabled", false);
+            });
+
+            // register click listener for creating a new service
+            $("#createService").click(async function() {
+              $(this).attr("disabled", true);
+              $(".cancel").attr("disabled", true);
+
+              var name = $("#newServiceName").val();
+              var description = $("#newServiceDescription").val();
+              var cost = $("#newServiceCost").val();
+
+              if (name != "" && description != "" && cost != "") {
+                await setDoc(doc(db, "users", user.uid, "services", generateId()), {
+                  "name": name,
+                  "date_created": moment().format("MMMM D, YYYY - H:mm A"),
+                  "description": description,
+                  "cost": cost
+                });
+
+                resetModals();
+                reloadTables();
+              }
+              
+              $(this).attr("disabled", false);
+              $(".cancel").attr("disabled", false);
+            });
+
+            // reload all tables
+            reloadTables();
+            
+            // clear all inputs
+            resetModals();
+          });
+        } else {
+          // redirect to login page if no user
+          window.location.href="login.html";
+        }
+      });
+      
+      function resetModals() {
+        $(".modal").modal("hide");
+        $(".modal").find(":input").val("");
+      }
+
+      function generateId() {
+        return Math.random().toString(36).substring(2) + (new Date()).getTime().toString(36);
+      }
+
+      async function reloadTables() {
+          // load invoices from database
+          const invoiceQuery = collection(db, "users", user.uid, "invoices");
+          const invoiceSnapshot = await getDocs(invoiceQuery);
+          $("#invoiceList").empty();
+          invoiceSnapshot.forEach((doc) => {
+            console.log(doc.data());
+            var html = `<tr class="selectable"><td>${doc.data().client}</td><td>${doc.data().viewed}</td><td>${doc.data().paid}</td></tr>`;
+            $("#invoiceList").prepend(html);
+          });
+
+          // load clients from database
+          const clientsQuery = collection(db, "users", user.uid, "clients");
+          const clientsSnapshot = await getDocs(clientsQuery);
+          $("#newInvoiceClient").empty();
+          $("#clientList").empty();
+          clientsSnapshot.forEach((doc) => {
+            var html = `<tr class="selectable"><td>${doc.data().name}</td><td>${doc.data().last_invoiced}</td><td>${doc.data().invoices}</td></tr>`;
+            $("#newInvoiceClient").append(`<option>${doc.data().name}</option>`);
+            $("#clientList").prepend(html);
+          });
+
+          // load services from database
+          const servicesQuery = collection(db, "users", user.uid, "services");
+          const servicesSnapshop = await getDocs(servicesQuery);
+          $("#newInvoiceService").empty();
+          $("#serviceList").empty();
+          servicesSnapshop.forEach((doc) => {
+            var html = `<tr class="selectable"><td>${doc.data().name}</td><td>${doc.data().description}</td><td>$${doc.data().cost}</td></tr>`;
+            $("#newInvoiceService").append(`<option>${doc.data().name}</option>`);
+            $("#serviceList").prepend(html);
+          });
+      }
+    </script>
+  </head>
+
+  <script>
+      $(document).ready(function() {
+        // init section elements
+        const invoiceSection = $("#invoiceSection");
+        const clientSection = $("#clientSection");
+        const servicesSection = $("#servicesSection");
+
+        // init nav elements
+        const navInvoices = $("#navInvoices");
+        const navClients = $("#navClients");
+        const navServices = $("#navServices");
+        const navSignOut = $("#navSignOut");
+
+        // register click listeners for navs
+        navInvoices.click(() => show(0));
+        navClients.click(() => show(1));
+        navServices.click(() => show(2));
+        navSignOut.click(() => show(3));
+
+        // register click listeners for modals
+        $("#newInvoice").click(() => $("#newInvoiceModal").modal("show"));
+        $("#newClient").click(() => $("#newClientModal").modal("show"));
+        $("#newService").click(() => $("#newServiceModal").modal("show"));
+
+        // register client listener for modal cancel buttons
+        $(".cancel").click(function() {
+          $(".modal").modal("hide");
+          $(".modal").find(":input").val("");
+        });
+
+        // change nav and current section to the defined
+        function show(nav) {
+          invoiceSection.addClass("d-none");
+          clientSection.addClass("d-none");
+          servicesSection.addClass("d-none");
+
+          navInvoices.removeClass("active");
+          navClients.removeClass("active");
+          navServices.removeClass("active");
+          navSignOut.removeClass("active");
+
+          if (nav == 0) {
+            invoiceSection.removeClass("d-none");
+            navInvoices.addClass("active");
+          } else if (nav == 1) {
+            clientSection.removeClass("d-none");
+            navClients.addClass("active");
+          } else if (nav == 2) {
+            servicesSection.removeClass("d-none");
+            navServices.addClass("active");
+          } else if (nav == 3) {
+            window.localStorage.setItem("current_section", null);
+            logout();
+          }
+          window.localStorage.setItem("current_section", nav);
+        }
+
+        // load a section after the dom has loaded
+        if (window.localStorage.getItem("current_section") != null && window.localStorage.getItem("current_section") != 3) {
+          show(window.localStorage.getItem("current_section"));
+        } else {
+          show(0);
+        }
+      });
+  </script>
+
+  <body>
+      <!-- start new invoice modal -->
+      <div class="modal" id="newInvoiceModal" data-keyboard="false" data-backdrop="static" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">New Invoice</h5>
+              <button type="button" class="close shadow-none" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form>
+                <div class="form-group">
+                  <label for="newInvoiceClient">Select a client:</label>
+                  <select class="form-control shadow-none" id="newInvoiceClient">
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="newInvoiceService">Select a service:</label>
+                  <select class="form-control shadow-none" id="newInvoiceService">
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="newInvoiceNotes">Additional notes:</label>
+                  <textarea class="form-control shadow-none" id="newInvoiceNotes" rows="3"></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-link shadow-none cancel">Cancel</button>
+              <button type="button" id="createInvoice" class="btn btn-outline-primary shadow-none">Create</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- end new invoice modal -->
+      <!-- start new client modal -->
+      <div class="modal" id="newClientModal" data-keyboard="false" data-backdrop="static" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">New Client</h5>
+              <button type="button" class="close shadow-none" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form>
+                <div class="form-group">
+                  <label for="newClientName">Enter a name:</label>
+                  <input type="text" class="form-control shadow-none" id="newClientName" placeholder="">
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-link shadow-none cancel">Cancel</button>
+              <button type="button" id="createCustomer" class="btn btn-outline-primary shadow-none">Create</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- end new client modal -->
+      <!-- start new service modal -->
+      <div class="modal" id="newServiceModal" data-keyboard="false" data-backdrop="static" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">New Service</h5>
+              <button type="button" class="close shadow-none" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form>
+                <div class="form-group">
+                  <label for="newServiceName">Enter a name:</label>
+                  <input type="text" class="form-control shadow-none" id="newServiceName" placeholder="">
+                </div>
+                <div class="form-group">
+                  <label for="newServiceDescription">Enter a description:</label>
+                  <textarea class="form-control shadow-none" id="newServiceDescription" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="newServiceCost">Enter a cost:</label>
+                  <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text bg-transparent">$</span>
+                    </div>
+                    <input type="text" id="newServiceCost" class="form-control shadow-none">
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-link shadow-none cancel">Cancel</button>
+              <button type="button" id="createService" class="btn btn-outline-primary shadow-none">Create</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- end new service modal -->
+      <div class="d-flex flex-row h-100">
+        <div class="d-flex flex-column sidebar">
+          <nav class="nav flex-column">
+            <a class="nav-link" id="navInvoices" href="javascript:void(0)"><i class="fas fa-wallet"></i></a>
+            <a class="nav-link" id="navClients" href="javascript:void(0)"><i class="fas fa-user-friends"></i></a>
+            <a class="nav-link" id="navServices" href="javascript:void(0)"><i class="fas fa-stream"></i></a>
+            <div class="bottom">
+              <a class="nav-link" id="navSignOut" href="javascript:void(0)"><i class="fas fa-lg fa-sign-out-alt"></i></a>
+            </div>
+          </nav>
+        </div>
+        <div class="col p-5 content">
+          <!-- start invoice section -->
+          <section id="invoiceSection" class="d-none">
+            <div class="d-flex flex-row">
+              <div class="col p-0">
+                <h2 class="m-0">Invoices</h2>
+              </div>
+              <div class="d-flex flex-column">
+                <button type="button" id="newInvoice" class="btn btn-link shadow-none"><i class="fas fa-plus fa-sm mr-2"></i> Add New</button>
+              </div>
+            </div>
+            <div class="card mt-5">
+              <div class="card-body">
+                <table class="table mb-0">
+                  <thead>
+                    <tr>
+                      <th scope="col">Client</th>
+                      <th scope="col">Viewed</th>
+                      <th scope="col">Paid</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoiceList">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <!-- end invoice section -->
+          <!-- start client section -->
+          <section id="clientSection" class="d-none h-100">
+            <div class="d-flex flex-row">
+              <div class="col p-0">
+                <h2 class="m-0">Clients</h2>
+              </div>
+              <div class="d-flex flex-column">
+                <button type="button" id="newClient" class="btn btn-link shadow-none"><i class="fas fa-plus fa-sm mr-2"></i> Add New</button>
+              </div>
+            </div>
+            <div class="card mt-5">
+              <div class="card-body">
+                <table class="table mb-0">
+                  <thead>
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Last Invoiced</th>
+                      <th scope="col">Total Invoices</th>
+                    </tr>
+                  </thead>
+                  <tbody id="clientList">
+                    
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <!-- end client section -->
+          <!-- start services section -->
+          <section id="servicesSection" class="d-none">
+            <div class="d-flex flex-row">
+              <div class="col p-0">
+                <h2 class="m-0">Services</h2>
+              </div>
+              <div class="d-flex flex-column">
+                <button type="button" id="newService" class="btn btn-link shadow-none"><i class="fas fa-plus fa-sm mr-2"></i> Add New</button>
+              </div>
+            </div>
+            <div class="card mt-5">
+              <div class="card-body">
+                <table class="table mb-0">
+                  <thead>
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Description</th>
+                      <th scope="col">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody id="serviceList">
+                    
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+  </body>
+</html>
