@@ -163,11 +163,11 @@
                 });
                 
                 var snapshot = await getDocs(collection(db, "users", user.uid, "clients"));
-                snapshot.forEach((doc) => {
-                  if (doc.data().name == client) {
-                    await setDoc(doc(db, "users", user.uid, "clients", doc.id), {
-                       "invoices": doc.data().invoices + 1,
-                        "last_invoiced":  moment().format("MMMM D, YYYY H:mm A")
+                snapshot.forEach((document) => {
+                  if (document.data().name == client) {
+                    await setDoc(doc(db, "users", user.uid, "clients", document.id), {
+                       "invoices": document.data().invoices + 1,
+                       "last_invoiced":  moment().format("MMMM D, YYYY H:mm A")
                     });
                     break;
                   }
