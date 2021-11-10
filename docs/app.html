@@ -163,7 +163,7 @@
                 });
                 
                 var snapshot = await getDocs(collection(db, "users", user.uid, "clients"));
-                snapshot.forEach((document) => {
+                snapshot.forEach(async function(document) {
                   if (document.data().name == client) {
                     await setDoc(doc(db, "users", user.uid, "clients", document.id), {
                        "invoices": document.data().invoices + 1,
