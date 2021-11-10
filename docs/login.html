@@ -51,11 +51,11 @@
                     const code = error.code;
                     const message = error.message;
 
-                    alert(code + ": " + message);
-
                     $("#emailInput").prop("disabled", false);
                     $("#passwordInput").prop("disabled", false);
                     $("#submitForm").prop("disabled", false);
+              
+                    return code + ": " + message;
                 });
         }
       </script>
@@ -97,7 +97,8 @@
             $("#passwordInput").prop("disabled", true);
             $("#submitForm").prop("disabled", true);
 
-            login(email, password);
+            error = login(email, password);
+            $("#submitForm").after("<p class='m-0 text-danger'>" + error + "</p>");
         });
 
         $("#autoDemoLogin").click(function() {
