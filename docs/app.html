@@ -257,7 +257,7 @@
           $("#invoiceList").empty();
           invoiceSnapshot.forEach((doc) => {
             console.log(doc.data());
-            var html = `<tr class="selectable"><td>${doc.data().client}</td><td>${doc.data().viewed}</td><td>${doc.data().paid}</td></tr>`;
+            var html = `<tr class="selectable"><td>${doc.data().client}</td><td>${doc.data().service}</td><td>${doc.data().viewed}</td><td>${doc.data().paid}</td></tr>`;
             $("#invoiceList").prepend(html);
           });
 
