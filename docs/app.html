@@ -166,6 +166,7 @@
                 snapshot.forEach(async function(document) {
                   if (document.data().name == client) {
                     await setDoc(doc(db, "users", user.uid, "clients", document.id), {
+                       "name": document.data().name,
                        "invoices": document.data().invoices + 1,
                        "last_invoiced":  moment().format("MMMM D, YYYY H:mm A")
                     });
