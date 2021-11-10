@@ -155,11 +155,22 @@
               if (client != "" || service != "" || notes != "") {
                 await setDoc(doc(db, "users", user.uid, "invoices", generateId()), {
                   "client": client,
-                  "date_created": moment().format("MMMM D, YYYY - H:mm A"),
+                  "date_created": moment().format("MMMM D, YYYY H:mm A"),
                   "service": service,
                   "notes": notes,
                   "viewed": "No",
                   "paid": "No"
+                });
+                
+                var snapshot = await getDocs(collection(db, "users", user.uid, "clients"));
+                snapshot.forEach((doc) => {
+                  if (doc.data().name == client) {
+                    await setDoc(doc(db, "users", user.uid, "clients", doc.id), {
+                       "invoices": doc.data().invoices += 1,
+                        "last_invoiced":  moment().format("MMMM D, YYYY H:mm A")
+                    });
+                    break;
+                  }
                 });
 
                 resetModals();
@@ -180,7 +191,7 @@
               if (name != "") {
                 await setDoc(doc(db, "users", user.uid, "clients", generateId()), {
                   "name": name,
-                  "date_created": moment().format("MMMM D, YYYY - H:mm A"),
+                  "date_created": moment().format("MMMM D, YYYY H:mm A"),
                   "last_invoiced": "Never",
                   "invoices": 0
                 });
@@ -205,7 +216,7 @@
               if (name != "" && description != "" && cost != "") {
                 await setDoc(doc(db, "users", user.uid, "services", generateId()), {
                   "name": name,
-                  "date_created": moment().format("MMMM D, YYYY - H:mm A"),
+                  "date_created": moment().format("MMMM D, YYYY H:mm A"),
                   "description": description,
                   "cost": cost
                 });
