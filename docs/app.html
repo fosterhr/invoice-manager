@@ -166,7 +166,7 @@
                 snapshot.forEach((doc) => {
                   if (doc.data().name == client) {
                     await setDoc(doc(db, "users", user.uid, "clients", doc.id), {
-                       "invoices": doc.data().invoices += 1,
+                       "invoices": doc.data().invoices + 1,
                         "last_invoiced":  moment().format("MMMM D, YYYY H:mm A")
                     });
                     break;
